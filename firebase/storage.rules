@@ -1,0 +1,41 @@
+rules_version = '2';
+
+// Upload limits for Nijaora media.
+// - Public business media: readable by anyone, writable by the owning business.
+// - Customer media (future review photos): private to the uploader.
+// - 5 MB cap and image/* only, matching the PRD upload rules.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function underLimit() {
+      return request.resource.size < 5 * 1024 * 1024;
+    }
+
+    function ownsBusiness(businessId) {
+      return signedIn() &&
+        firestore.get(/databases/(default)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
+    }
+
+    match /businesses/{businessId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if signedIn() && ownsBusiness(businessId) && isImage() && underLimit();
+    }
+
+    match /users/{userId}/{allPaths=**} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow write: if signedIn() && request.auth.uid == userId && isImage() && underLimit();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,167 @@
+rules_version = '2';
+
+// Nijaora Firestore security model.
+//
+// Client writes are intentionally narrow. Anything that changes trust,
+// visibility, money, or moderation goes through a callable Cloud Function
+// using the Admin SDK (which bypasses these rules) and writes an entry to
+// adminAuditLogs.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    function isAdmin() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+
+    // ---------------------------------------------------------------- users
+    // Private profile: phone number, role, saved area. Owners and admins only.
+    match /users/{userId} {
+      allow read: if signedIn() && (uid() == userId || isAdmin());
+      allow create: if signedIn()
+        && userId == uid()
+        && request.resource.data.phone is string
+        && request.resource.data.role in ['customer', 'business'];
+      // Role switches between customer and business are user-controlled; admin
+      // is a custom claim, so this cannot grant elevated access.
+      allow update: if signedIn()
+        && userId == uid()
+        && request.resource.data.role in ['customer', 'business']
+        && request.resource.data.get('businessId', null) == resource.data.get('businessId', null);
+      allow delete: if false;
+    }
+
+    // ----------------------------------------------------------- businesses
+    // Public profile fields are readable once published. Drafts stay owner-only.
+    // Ratings, light score, verification and publish state are server-owned.
+    match /businesses/{businessId} {
+      function isBusinessOwner() {
+        return signedIn() && resource.data.ownerId == uid();
+      }
+
+      function isPublished() {
+        return resource.data.isPublished == true;
+      }
+
+      allow get: if isPublished() || isBusinessOwner() || isAdmin();
+      allow list: if isPublished() || isBusinessOwner() || isAdmin();
+
+      allow create: if signedIn()
+        && request.resource.data.ownerId == uid()
+        && request.resource.data.isPublished == false
+        && request.resource.data.verificationLevel == 0
+        && request.resource.data.rating == 0
+        && request.resource.data.reviewCount == 0;
+
+      allow update: if isBusinessOwner()
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.isPublished == resource.data.isPublished
+        && request.resource.data.verificationLevel == resource.data.verificationLevel
+        && request.resource.data.rating == resource.data.rating
+        && request.resource.data.reviewCount == resource.data.reviewCount
+        && request.resource.data.lightScore == resource.data.lightScore;
+
+      allow delete: if false;
+
+      // Reviews are public. Creation/editing is callable-only so eligibility
+      // and anti-collusion checks cannot be bypassed.
+      match /reviews/{reviewId} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
+
+    // -------------------------------------------------------- conversations
+    // Only the two participants can read. Message authors are fixed at create.
+    match /conversations/{conversationId} {
+      function isParticipant() {
+        return signedIn() && uid() in resource.data.participantIds;
+      }
+
+      allow read: if isParticipant() || isAdmin();
+      allow create: if signedIn()
+        && uid() in request.resource.data.participantIds
+        && request.resource.data.participantIds.size() == 2
+        && request.resource.data.businessId is string;
+      allow update: if isParticipant()
+        && request.resource.data.participantIds == resource.data.participantIds
+        && request.resource.data.businessId == resource.data.businessId;
+      allow delete: if isAdmin();
+
+      match /messages/{messageId} {
+        function participants() {
+          return get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
+        }
+
+        allow read: if signedIn() && (uid() in participants() || isAdmin());
+        allow create: if signedIn()
+          && uid() in participants()
+          && request.resource.data.senderId == uid()
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 4000;
+        // Messages are immutable once sent.
+        allow update, delete: if false;
+      }
+    }
+
+    // --------------------------------------------------------------- reports
+    match /reports/{reportId} {
+      allow create: if signedIn()
+        && request.resource.data.reporterId == uid()
+        && request.resource.data.reason is string
+        && request.resource.data.reason.size() > 0;
+      allow read, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // --------------------------------------------------------- notifications
+    // Written by Cloud Functions; the recipient may mark as read.
+    match /notifications/{userId}/items/{itemId} {
+      allow read: if signedIn() && uid() == userId;
+      allow update: if signedIn()
+        && uid() == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && request.resource.data.read is bool;
+      allow create, delete: if false;
+    }
+
+    // ------------------------------------------------------- reference data
+    // Managed by admins through callables / Admin SDK only.
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /locations/{locationId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // --------------------------------------------------- server-owned tables
+    match /adminAuditLogs/{logId} {
+      allow read, write: if false;
+    }
+
+    match /otpAttempts/{attemptId} {
+      allow read, write: if false;
+    }
+
+    match /reviewEligibility/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Anything not matched above is closed by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
