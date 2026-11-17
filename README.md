@@ -212,10 +212,10 @@ The four supplied maker photographs under `assets/images/hero/story-*.png`
 editorial slot. The current hero intentionally uses the original collage.
 
 The app icon, adaptive Android icon, web favicon, iOS/macOS icons and Windows
-`.ico` are all generated from one source mark: [`docs/nijaora-mark.svg`](docs/nijaora-mark.svg).
-The mark is an ivory N with a light-green spark on a deep forest field. Android
-uses an adaptive icon with a generated foreground, and both Android and iOS use
-the forest-green native launch screen with the centred mark.
+`.ico` are all generated from the official Nijaora marketplace logo:
+[`assets/brand/nijaora_app_icon.png`](assets/brand/nijaora_app_icon.png).
+Android uses an adaptive icon with the N-and-bag mark on a forest field. Both
+Android and iOS use the forest-green native launch screen with the centred logo.
 
 The fox mascot is supplied owner artwork, bundled in `assets/images/` as
 `mascot_light.png` and recoloured for the Nijaora palette. The same white/green
