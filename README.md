@@ -6,6 +6,15 @@ register where they are based and where they can work.
 
 Tagline: **Find your inner light.**
 
+## Live preview
+
+[Open the Nijaora web preview](https://dammydaly-ops.github.io/nijaora/)
+
+The preview is built in demo mode so it is fully browsable without a Supabase
+session. Demo accounts and registrations live in the browser's local storage.
+Production auth and publishing use Supabase when the app is built with
+`AUTH_BACKEND=supabase` and a publishable key.
+
 ## Screenshots
 
 | Home, light | Home, dark |
