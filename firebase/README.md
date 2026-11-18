@@ -15,8 +15,9 @@ Nothing in this folder contains secrets; the project ID is supplied locally in
 
 Already done:
 
-- `flutterfire configure` generated `lib/data/sources/firebase/firebase_options.dart`,
-  `android/app/google-services.json`, and the Gradle plugin wiring;
+- `flutterfire configure` was used to generate the Firebase options files and
+  Gradle wiring; the API keys have since been replaced with build-time defines
+  and placeholders;
 - debug SHA-1 and SHA-256 fingerprints were added to the Android app;
 - Firestore was created and `firestore.rules` / `firestore.indexes.json` were
   deployed.
@@ -52,25 +53,25 @@ cd firebase
 firebase use --add                      # choose the project, alias "default"
 ```
 
-Then, from the repository root:
+Firebase API keys are intentionally **not stored in this repository**. Keep the
+committed `lib/data/sources/firebase/firebase_options.dart` as-is: it reads the
+keys from build-time variables. For a local Firebase-backed build, supply them
+yourself:
 
 ```bash
-dart pub global activate flutterfire_cli
-flutterfire configure \
-  --project=<project-id> \
-  --platforms=android,web \
-  --out=lib/data/sources/firebase/firebase_options.dart
+flutter run \
+  --dart-define=AUTH_BACKEND=firebase \
+  --dart-define=FIREBASE_WEB_API_KEY=<web-api-key> \
+  --dart-define=FIREBASE_ANDROID_API_KEY=<android-api-key>
 ```
 
-`--out` matters: the app imports `DefaultFirebaseOptions` from
-`lib/data/sources/firebase/`. Without it, FlutterFire writes
-`lib/firebase_options.dart` and the placeholder stays in place.
+For Android, copy `android/app/google-services.json` locally and replace the
+placeholder Android API key. Never commit the filled-in file. You can use
+`flutterfire configure` to look up your Firebase values, but do not overwrite
+the checked-in `firebase_options.dart` with real keys.
 
-The command creates:
-
-- `lib/data/sources/firebase/firebase_options.dart` (real options)
-- `android/app/google-services.json`
-- the `com.google.gms.google-services` Gradle plugin entries
+The Gradle plugin entries are already present in `android/settings.gradle.kts`
+and `android/app/build.gradle.kts`.
 
 Verify the Gradle plugin was added. `android/settings.gradle.kts` should contain
 `id("com.google.gms.google-services") version "..." apply false` and
