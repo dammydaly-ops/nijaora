@@ -49,8 +49,10 @@ class DefaultFirebaseOptions {
     }
   }
 
+  // Firebase is an optional fallback backend. The API keys are injected at
+  // build time with --dart-define so they are never stored in this repository.
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'FIREBASE_WEB_API_KEY_PLACEHOLDER',
+    apiKey: const String.fromEnvironment('FIREBASE_WEB_API_KEY'),
     appId: '1:457961296179:web:92ea8c16b62d3b8cafae46',
     messagingSenderId: '457961296179',
     projectId: 'nijaora',
@@ -60,7 +62,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'REPLACE_WITH_FIREBASE_ANDROID_API_KEY',
+    apiKey: const String.fromEnvironment('FIREBASE_ANDROID_API_KEY'),
     appId: '1:457961296179:android:518e0e27e67ee2f3afae46',
     messagingSenderId: '457961296179',
     projectId: 'nijaora',

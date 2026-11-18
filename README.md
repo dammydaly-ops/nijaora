@@ -91,6 +91,22 @@ Phone/password additionally needs the Phone provider and an SMS provider; if
 phone confirmation is enabled, the first sign-up may ask for a code once, and
 returning sign-ins still use the password.
 
+### Optional Firebase fallback credentials
+
+Firebase is only a fallback auth backend; no Firebase API keys are stored in this
+repository. Supply them at build time:
+
+```bash
+flutter run \
+  --dart-define=AUTH_BACKEND=firebase \
+  --dart-define=FIREBASE_WEB_API_KEY=<web-api-key> \
+  --dart-define=FIREBASE_ANDROID_API_KEY=<android-api-key>
+```
+
+`android/app/google-services.json` contains a placeholder Android API key.
+Replace it locally with the value from your Firebase project before making a
+Firebase-backed Android build, and never commit the filled-in file.
+
 ### Splash and onboarding
 
 Every launch shows a branded splash while auth and saved preferences load. On a
