@@ -8,7 +8,7 @@ Tagline: **Find your inner light.**
 
 ## Live preview
 
-[Open the Nijaora web preview](https://dammydaly-ops.github.io/nijaora/)
+[Open the Nijaora web preview](https://nijaora.vercel.app/)
 
 The preview is built in demo mode so it is fully browsable without a Supabase
 session. Demo accounts and registrations live in the browser's local storage.
